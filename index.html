@@ -69,7 +69,7 @@
 
     <img src="logo.png" alt="Logo ASTER" class="logo">
 
-    <h1>Contrôle des Accès & Sorties</h1>
+    <h1>Contrôle des Sorties</h1>
     <div id="reader"></div>
     
     <div id="result-container">
@@ -81,7 +81,8 @@
     <button id="restart-btn" style="display:none;" onclick="relancerScan()">Scanner un autre</button>
 
     <script>
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz58Kd2urRSknB_cnGGhJuwkITze4eCKirmdxIx8kUk9TjmSnucMuTtB4ChwPucm-8/exec";
+        // Utilisation de la nouvelle URL de déploiement Apps Script
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwmaAD0qokoqfw7x4SqsjOQfgpxcdTdmUJrlG7xykf6Gs5svAf2Qty5TwzeC5Uj0zg/exec";
         let html5QrCode;
 
         function surScanReussi(decodedText) {
@@ -104,23 +105,19 @@
             codeEl.innerText = "Code : " + code;
             container.className = "";
 
-            fetch(`${WEB_APP_URL}?code=${encodeURIComponent(code)}`)
+            // Ajout explicite du paramètre &action=sortie pour que le script gère la sortie
+            fetch(`${WEB_APP_URL}?code=${encodeURIComponent(code)}&action=sortie`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === "ok") {
-                        if (data.action === "entree") {
-                            container.className = "bg-ok";
-                            statusEl.innerText = "✔ ENTRÉE VALIDÉE";
-                        } else {
-                            container.className = "bg-sortie";
-                            statusEl.innerText = "✔ SORTIE VALIDÉE";
-                        }
+                        container.className = "bg-sortie";
+                        statusEl.innerText = "✔ SORTIE VALIDÉE";
                         nameEl.innerText = data.name;
                         codeEl.innerText = "ID : " + code;
-                    } else if (data.status === "already") {
+                    } else if (data.status === "sortie_impossible") {
                         container.className = "bg-already";
-                        statusEl.innerText = "⚠ DÉJÀ SORTI !";
-                        nameEl.innerText = data.name;
+                        statusEl.innerText = "⚠ SORTIE IMPOSSIBLE";
+                        nameEl.innerText = `${data.name} n'est pas enregistré comme présent.`;
                         codeEl.innerText = "ID : " + code;
                     } else {
                         container.className = "bg-unknown";
