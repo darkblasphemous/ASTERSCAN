@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validation de Sortie - ASTER</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+            background-color: #f4f4f9;
+        }
+        .logo {
+            max-width: 160px;
+            height: auto;
+            margin-bottom: 15px;
+        }
+        h1 { font-size: 22px; color: #333; }
+        #result-container {
+            margin-top: 30px;
+            padding: 30px;
+            border-radius: 12px;
+            color: white;
+            font-size: 20px;
+            display: inline-block;
+            max-width: 400px;
+        }
+        .bg-sortie { background-color: #17a2b8; }   /* Bleu : Sortie validée */
+        .bg-already { background-color: #ffc107; color: #333 !important; } /* Orange : Déjà sorti */
+        .bg-unknown { background-color: #dc3545; }  /* Rouge : Erreur */
+    </style>
+</head>
+<body>
+
+    <img src="logo.png" alt="Logo ASTER" class="logo">
+    <h1>Validation de votre Sortie</h1>
+    
+    <div id="result-container">
+        <div id="result-status">Validation en cours...</div>
+        <div id="result-name" style="font-size: 18px; margin-top: 10px; font-weight: bold;"></div>
+    </div>
+
+    <script>
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz58Kd2urRSknB_cnGGhJuwkITze4eCKirmdxIx8kUk9TjmSnucMuTtB4ChwPucm-8/exec";
+
+        // Récupérer l'ID unique caché dans l'URL (ex: sortie.html?id=ASTER-JMEMBRE2026-002)
+        const urlParams = new URLSearchParams(window.location.search);
+        const memberId = urlParams.get('id');
+
+        const container = document.getElementById('result-container');
+        const statusEl = document.getElementById('result-status');
+        const nameEl = document.getElementById('result-name');
+
+        if (!memberId) {
+            container.className = "bg-unknown";
+            statusEl.innerText = "✖ ERREUR";
+            nameEl.innerText = "Aucun identifiant détecté.";
+        } else {
+            fetch(`${WEB_APP_URL}?code=${encodeURIComponent(memberId)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "ok" && data.action === "sortie") {
+                        container.className = "bg-sortie";
+                        statusEl.innerText = "✔ SORTIE VALIDÉE";
+                        nameEl.innerText = data.name;
+                    } else if (data.status === "already") {
+                        container.className = "bg-already";
+                        statusEl.innerText = "⚠ DÉJÀ SORTI !";
+                        nameEl.innerText = data.name;
+                    } else {
+                        container.className = "bg-unknown";
+                        statusEl.innerText = "✖ ACTION IMPOSSIBLE";
+                        nameEl.innerText = "Vérifiez votre statut d'entrée.";
+                    }
+                })
+                .catch(() => {
+                    container.className = "bg-unknown";
+                    statusEl.innerText = "Erreur réseau";
+                });
+        }
+    </script>
+</body>
+</html>
