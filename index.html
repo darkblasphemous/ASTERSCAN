@@ -79,6 +79,16 @@
         }
 
         function verifierDansGoogleSheet(code) {
+            // Nettoyage intelligent : si la caméra lit une URL complète, on extrait l'ID
+            try {
+                if (code.includes('?')) {
+                    const urlObj = new URL(code);
+                    code = urlObj.searchParams.get('id') || urlObj.searchParams.get('code') || code;
+                }
+            } catch (e) {
+                // Si ce n'est pas une URL valide, on garde le texte brut scanné
+            }
+
             const container = document.getElementById('result-container');
             const statusEl = document.getElementById('result-status');
             const nameEl = document.getElementById('result-name');
@@ -91,7 +101,6 @@
             codeEl.innerText = "Code : " + code;
             container.className = "";
 
-            // Notez bien &action=entree ici
             fetch(`${WEB_APP_URL}?code=${encodeURIComponent(code)}&action=entree`)
                 .then(response => response.json())
                 .then(data => {
