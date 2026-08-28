@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contrôle d'Accès - ASTER</title>
+    <title>Contrôle de Sortie - ASTER</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         body {
@@ -33,25 +33,13 @@
             color: white;
             display: none;
         }
-        /* Styles des couleurs du bloc dynamique */
-        .bg-ok { background-color: #28a745; }      /* Vert : Entrée validée */
         .bg-sortie { background-color: #17a2b8; }   /* Bleu : Sortie validée */
-        .bg-already { background-color: #ffc107; color: #333 !important; } /* Orange : Déjà traité */
+        .bg-already { background-color: #ffc107; color: #333 !important; } /* Orange : Sortie impossible */
         .bg-unknown { background-color: #dc3545; }  /* Rouge : Inconnu */
         
-        .status-title {
-            font-size: 18px;
-            font-weight: bold;
-        }
-        .member-name {
-            font-size: 16px;
-            margin-top: 6px;
-        }
-        .scanned-code {
-            font-size: 14px;
-            margin-top: 6px;
-            opacity: 0.9;
-        }
+        .status-title { font-size: 18px; font-weight: bold; }
+        .member-name { font-size: 16px; margin-top: 6px; }
+        .scanned-code { font-size: 14px; margin-top: 6px; opacity: 0.9; }
 
         button {
             margin-top: 20px;
@@ -68,7 +56,6 @@
 <body>
 
     <img src="logo.png" alt="Logo ASTER" class="logo">
-
     <h1>Contrôle des Sorties</h1>
     <div id="reader"></div>
     
@@ -81,7 +68,6 @@
     <button id="restart-btn" style="display:none;" onclick="relancerScan()">Scanner un autre</button>
 
     <script>
-        // Utilisation de la nouvelle URL de déploiement Apps Script
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwmaAD0qokoqfw7x4SqsjOQfgpxcdTdmUJrlG7xykf6Gs5svAf2Qty5TwzeC5Uj0zg/exec";
         let html5QrCode;
 
@@ -105,7 +91,6 @@
             codeEl.innerText = "Code : " + code;
             container.className = "";
 
-            // Ajout explicite du paramètre &action=sortie pour que le script gère la sortie
             fetch(`${WEB_APP_URL}?code=${encodeURIComponent(code)}&action=sortie`)
                 .then(response => response.json())
                 .then(data => {
@@ -113,26 +98,25 @@
                         container.className = "bg-sortie";
                         statusEl.innerText = "✔ SORTIE VALIDÉE";
                         nameEl.innerText = data.name;
-                        codeEl.innerText = "ID : " + code;
                     } else if (data.status === "sortie_impossible") {
                         container.className = "bg-already";
                         statusEl.innerText = "⚠ SORTIE IMPOSSIBLE";
-                        nameEl.innerText = `${data.name} n'est pas enregistré comme présent.`;
-                        codeEl.innerText = "ID : " + code;
+                        nameEl.innerText = `${data.name} n'est pas marqué comme présent.`;
                     } else {
                         container.className = "bg-unknown";
                         statusEl.innerText = "✖ INCONNU";
                         nameEl.innerText = "Ce QR code n'existe pas.";
-                        codeEl.innerText = "ID : " + code;
                     }
-                    btn.style.display = 'inline-block';
-                })
-                .catch(() => {
-                    container.className = "bg-unknown";
-                    statusEl.innerText = "Erreur réseau";
-                    nameEl.innerText = "";
                     codeEl.innerText = "ID : " + code;
                     btn.style.display = 'inline-block';
+                })
+                .catch(err => {
+                    container.className = "bg-unknown";
+                    statusEl.innerText = "Erreur de communication";
+                    nameEl.innerText = "Vérifiez votre connexion.";
+                    codeEl.innerText = "ID : " + code;
+                    btn.style.display = 'inline-block';
+                    console.error(err);
                 });
         }
 
