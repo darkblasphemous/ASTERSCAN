@@ -3,91 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enregistrement Sortie - ASTER</title>
+    <title>Contrôle de Sortie - ASTER</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f4f6f9;
             margin: 0;
             padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-        .card {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             text-align: center;
-            max-width: 400px;
-            width: 100%;
+            background-color: #f4f4f9;
         }
-        h2 {
-            color: #2c3e50;
+        .logo {
+            max-width: 160px;
+            height: auto;
             margin-bottom: 15px;
         }
-        .status {
-            font-weight: bold;
-            padding: 15px;
-            border-radius: 5px;
-            margin-top: 15px;
+        h1 { font-size: 22px; color: #333; margin-top: 0; }
+        #reader {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        #result-container {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 12px;
+            color: white;
+            display: none;
+        }
+        .bg-sortie { background-color: #17a2b8; }   /* Bleu : Sortie validée */
+        .bg-already { background-color: #ffc107; color: #333 !important; } /* Orange : Sortie impossible */
+        .bg-unknown { background-color: #dc3545; }  /* Rouge : Inconnu */
+        
+        .status-title { font-size: 18px; font-weight: bold; }
+        .member-name { font-size: 16px; margin-top: 6px; }
+        .scanned-code { font-size: 14px; margin-top: 6px; opacity: 0.9; }
+
+        button {
+            margin-top: 20px;
+            padding: 12px 24px;
             font-size: 16px;
-        }
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        .loading {
-            color: #007bff;
-            background-color: #e2f0d9;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <h2>Sortie Congrès ASTER</h2>
-        <div id="message" class="status loading">Validation de votre sortie en cours...</div>
+    <img src="logo.png" alt="Logo ASTER" class="logo">
+    <h1>Contrôle des Sorties</h1>
+    <div id="reader"></div>
+    
+    <div id="result-container">
+        <div id="result-status" class="status-title">En attente...</div>
+        <div id="result-name" class="member-name"></div>
+        <div id="result-code" class="scanned-code"></div>
     </div>
 
+    <button id="restart-btn" style="display:none;" onclick="relancerScan()">Scanner un autre</button>
+
     <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const memberId = urlParams.get('id');
-        const messageDiv = document.getElementById('message');
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwmaAD0qokoqfw7x4SqsjOQfgpxcdTdmUJrlG7xykf6Gs5svAf2Qty5TwzeC5Uj0zg/exec";
+        let html5QrCode;
 
-        if (!memberId) {
-            messageDiv.className = 'status error';
-            messageDiv.innerText = "Erreur : Aucun identifiant trouvé dans le lien.";
-        } else {
-            const scriptUrl = "https://script.google.com/macros/s/AKfycbz58Kd2urRSknB_cnGGhJuwkITze4eCKirmdxIx8kUk9TjmSnucMuTtB4ChwPucm-8/exec";
+        function surScanReussi(decodedText) {
+            html5QrCode.stop().then(() => {
+                document.getElementById('reader').style.display = 'none';
+                verifierDansGoogleSheet(decodedText);
+            }).catch(err => console.error(err));
+        }
 
-            fetch(`${scriptUrl}?code=${encodeURIComponent(memberId)}&action=sortie`)
+        function verifierDansGoogleSheet(code) {
+            const container = document.getElementById('result-container');
+            const statusEl = document.getElementById('result-status');
+            const nameEl = document.getElementById('result-name');
+            const codeEl = document.getElementById('result-code');
+            const btn = document.getElementById('restart-btn');
+
+            container.style.display = 'block';
+            statusEl.innerText = "Vérification...";
+            nameEl.innerText = "";
+            codeEl.innerText = "Code : " + code;
+            container.className = "";
+
+            fetch(`${WEB_APP_URL}?code=${encodeURIComponent(code)}&action=sortie`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === "ok") {
-                        messageDiv.className = 'status success';
-                        messageDiv.innerText = `Au revoir ${data.name} ! Votre sortie a bien été enregistrée.`;
+                        container.className = "bg-sortie";
+                        statusEl.innerText = "✔ SORTIE VALIDÉE";
+                        nameEl.innerText = data.name;
                     } else if (data.status === "sortie_impossible") {
-                        messageDiv.className = 'status error';
-                        messageDiv.innerText = `Sortie impossible pour ${data.name} : veuillez vérifier votre statut d'entrée.`;
+                        container.className = "bg-already";
+                        statusEl.innerText = "⚠ SORTIE IMPOSSIBLE";
+                        nameEl.innerText = `${data.name} n'est pas marqué comme présent.`;
                     } else {
-                        messageDiv.className = 'status error';
-                        messageDiv.innerText = "Erreur : " + (data.error || "Membre inconnu ou introuvable.");
+                        container.className = "bg-unknown";
+                        statusEl.innerText = "✖ INCONNU";
+                        nameEl.innerText = "Ce QR code n'existe pas.";
                     }
+                    codeEl.innerText = "ID : " + code;
+                    btn.style.display = 'inline-block';
                 })
-                .catch(error => {
-                    messageDiv.className = 'status error';
-                    messageDiv.innerText = "Erreur de connexion au serveur de pointage.";
-                    console.error('Erreur:', error);
+                .catch(err => {
+                    container.className = "bg-unknown";
+                    statusEl.innerText = "Erreur de communication";
+                    nameEl.innerText = "Vérifiez votre connexion.";
+                    codeEl.innerText = "ID : " + code;
+                    btn.style.display = 'inline-block';
+                    console.error(err);
                 });
         }
-    </script>
 
+        function relancerScan() {
+            document.getElementById('result-container').style.display = 'none';
+            document.getElementById('restart-btn').style.display = 'none';
+            document.getElementById('reader').style.display = 'block';
+            demarrerCamera();
+        }
+
+        function demarrerCamera() {
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: 250 },
+                surScanReussi
+            ).catch(err => alert("Erreur caméra : " + err));
+        }
+
+        window.onload = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const idFromUrl = urlParams.get('id');
+            
+            if (idFromUrl) {
+                document.getElementById('reader').style.display = 'none';
+                verifierDansGoogleSheet(idFromUrl);
+            } else {
+                demarrerCamera();
+            }
+        };
+    </script>
 </body>
 </html>
