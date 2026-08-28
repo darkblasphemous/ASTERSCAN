@@ -1,16 +1,93 @@
-const scriptUrl = "https://script.google.com/macros/s/AKfycbz58Kd2urRSknB_cnGGhJuwkITze4eCKirmdxIx8kUk9TjmSnucMuTtB4ChwPucm-8/exec";
-
-fetch(`${scriptUrl}?code=${encodeURIComponent(memberId)}&action=sortie`)
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === "ok") {
-            messageDiv.className = 'status success';
-            messageDiv.innerText = `Au revoir ${data.name} ! Votre sortie a bien été enregistrée.`;
-        } else if (data.status === "sortie_impossible") {
-            messageDiv.className = 'status error';
-            messageDiv.innerText = `Sortie impossible pour ${data.name} : veuillez vérifier votre statut d'entrée.`;
-        } else {
-            messageDiv.className = 'status error';
-            messageDiv.innerText = "Erreur : " + (data.error || "Membre inconnu ou introuvable.");
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enregistrement Sortie - ASTER</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
         }
-    })
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        .status {
+            font-weight: bold;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-size: 16px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .loading {
+            color: #007bff;
+            background-color: #e2f0d9;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>Sortie Congrès ASTER</h2>
+        <div id="message" class="status loading">Validation de votre sortie en cours...</div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const memberId = urlParams.get('id');
+        const messageDiv = document.getElementById('message');
+
+        if (!memberId) {
+            messageDiv.className = 'status error';
+            messageDiv.innerText = "Erreur : Aucun identifiant trouvé dans le lien.";
+        } else {
+            const scriptUrl = "https://script.google.com/macros/s/AKfycbz58Kd2urRSknB_cnGGhJuwkITze4eCKirmdxIx8kUk9TjmSnucMuTtB4ChwPucm-8/exec";
+
+            fetch(`${scriptUrl}?code=${encodeURIComponent(memberId)}&action=sortie`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "ok") {
+                        messageDiv.className = 'status success';
+                        messageDiv.innerText = `Au revoir ${data.name} ! Votre sortie a bien été enregistrée.`;
+                    } else if (data.status === "sortie_impossible") {
+                        messageDiv.className = 'status error';
+                        messageDiv.innerText = `Sortie impossible pour ${data.name} : veuillez vérifier votre statut d'entrée.`;
+                    } else {
+                        messageDiv.className = 'status error';
+                        messageDiv.innerText = "Erreur : " + (data.error || "Membre inconnu ou introuvable.");
+                    }
+                })
+                .catch(error => {
+                    messageDiv.className = 'status error';
+                    messageDiv.innerText = "Erreur de connexion au serveur de pointage.";
+                    console.error('Erreur:', error);
+                });
+        }
+    </script>
+
+</body>
+</html>
