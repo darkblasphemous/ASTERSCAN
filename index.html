@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contrôle d'Accès - ASTER</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+            background-color: #f4f4f9;
+        }
+        h1 { font-size: 22px; color: #333; }
+        #reader {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        #result-container {
+            margin-top: 20px;
+            padding: 30px;
+            border-radius: 12px;
+            color: white;
+            font-size: 22px;
+            font-weight: bold;
+            display: none;
+        }
+        .bg-ok { background-color: #28a745; }      /* Vert : Validé */
+        .bg-already { background-color: #ffc107; color: #333 !important; } /* Orange : Déjà scanné */
+        .bg-unknown { background-color: #dc3545; }  /* Rouge : Inconnu */
+        
+        button {
+            margin-top: 20px;
+            padding: 12px 24px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Contrôle des Accès</h1>
+    <div id="reader"></div>
+    
+    <div id="result-container">
+        <div id="result-status">En attente...</div>
+        <div id="result-name" style="font-size: 18px; margin-top: 10px;"></div>
+    </div>
+
+    <button id="restart-btn" style="display:none;" onclick="relancerScan()">Scanner un autre</button>
+
+    <script>
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwmaAD0qokoqfw7x4SqsjOQfgpxcdTdmUJrlG7xykf6Gs5svAf2Qty5TwzeC5Uj0zg/exec";
+        let html5QrCode;
+
+        function surScanReussi(decodedText) {
+            html5QrCode.stop().then(() => {
+                document.getElementById('reader').style.display = 'none';
+                verifierDansGoogleSheet(decodedText);
+            }).catch(err => console.error(err));
+        }
+
+        function verifierDansGoogleSheet(code) {
+            const container = document.getElementById('result-container');
+            const statusEl = document.getElementById('result-status');
+            const nameEl = document.getElementById('result-name');
+            const btn = document.getElementById('restart-btn');
+
+            container.style.display = 'block';
+            statusEl.innerText = "Vérification...";
+            nameEl.innerText = "Code : " + code;
+            container.className = "";
+
+            fetch(`${WEB_APP_URL}?code=${encodeURIComponent(code)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "ok") {
+                        container.className = "bg-ok";
+                        statusEl.innerText = "✔ ACCÈS AUTORISÉ";
+                        nameEl.innerText = data.name;
+                    } else if (data.status === "already") {
+                        container.className = "bg-already";
+                        statusEl.innerText = "⚠ DÉJÀ SCANNÉ !";
+                        nameEl.innerText = data.name;
+                    } else {
+                        container.className = "bg-unknown";
+                        statusEl.innerText = "✖ INCONNU";
+                        nameEl.innerText = "Ce QR code n'existe pas.";
+                    }
+                    btn.style.display = 'inline-block';
+                })
+                .catch(() => {
+                    container.className = "bg-unknown";
+                    statusEl.innerText = "Erreur réseau";
+                    btn.style.display = 'inline-block';
+                });
+        }
+
+        function relancerScan() {
+            document.getElementById('result-container').style.display = 'none';
+            document.getElementById('restart-btn').style.display = 'none';
+            document.getElementById('reader').style.display = 'block';
+            demarrerCamera();
+        }
+
+        function demarrerCamera() {
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: 250 },
+                surScanReussi
+            ).catch(err => alert("Erreur caméra : " + err));
+        }
+
+        window.onload = demarrerCamera;
+    </script>
+</body>
+</html>
