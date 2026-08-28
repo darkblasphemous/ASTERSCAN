@@ -57,7 +57,6 @@
     </div>
 
     <script>
-        // Récupération de l'ID dans l'URL (ex: entree.html?id=ASTER-JMEMBRE2026-002)
         const urlParams = new URLSearchParams(window.location.search);
         const memberId = urlParams.get('id');
         const messageDiv = document.getElementById('message');
@@ -66,19 +65,17 @@
             messageDiv.className = 'status error';
             messageDiv.innerText = "Erreur : Aucun identifiant trouvé dans le lien.";
         } else {
-            // Votre URL Google Apps Script intégrée
             const scriptUrl = "https://script.google.com/macros/s/AKfycbz58Kd2urRSknB_cnGGhJuwkITze4eCKirmdxIx8kUk9TjmSnucMuTtB4ChwPucm-8/exec";
 
-            // Envoi de la requête avec le paramètre 'code' attendu par votre script
-            fetch(`${scriptUrl}?code=${encodeURIComponent(memberId)}`)
+            fetch(`${scriptUrl}?code=${encodeURIComponent(memberId)}&action=entree`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === "ok") {
                         messageDiv.className = 'status success';
-                        messageDiv.innerText = `Bienvenue ${data.name} ! Votre entrée a été enregistrée avec succès.`;
-                    } else if (data.status === "already") {
+                        messageDiv.innerText = `Bienvenue ${data.name} ! Votre entrée a été enregistrée.`;
+                    } else if (data.status === "already_entered") {
                         messageDiv.className = 'status error';
-                        messageDiv.innerText = `Attention ${data.name}, votre badge a déjà été enregistré.`;
+                        messageDiv.innerText = `Attention ${data.name}, votre entrée a déjà été enregistrée !`;
                     } else {
                         messageDiv.className = 'status error';
                         messageDiv.innerText = "Erreur : " + (data.error || "Membre inconnu ou introuvable.");
