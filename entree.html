@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enregistrement Entrée - ASTER</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        .status {
+            font-weight: bold;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-size: 16px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .loading {
+            color: #007bff;
+            background-color: #e2f0d9;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>Entrée Congrès ASTER</h2>
+        <div id="message" class="status loading">Validation de votre entrée en cours...</div>
+    </div>
+
+    <script>
+        // Récupération de l'ID dans l'URL (ex: entree.html?id=ASTER-JMEMBRE2026-002)
+        const urlParams = new URLSearchParams(window.location.search);
+        const memberId = urlParams.get('id');
+        const messageDiv = document.getElementById('message');
+
+        if (!memberId) {
+            messageDiv.className = 'status error';
+            messageDiv.innerText = "Erreur : Aucun identifiant trouvé dans le lien.";
+        } else {
+            // Votre URL Google Apps Script intégrée
+            const scriptUrl = "https://script.google.com/macros/s/AKfycbz58Kd2urRSknB_cnGGhJuwkITze4eCKirmdxIx8kUk9TjmSnucMuTtB4ChwPucm-8/exec";
+
+            // Envoi de la requête avec le paramètre 'code' attendu par votre script
+            fetch(`${scriptUrl}?code=${encodeURIComponent(memberId)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "ok") {
+                        messageDiv.className = 'status success';
+                        messageDiv.innerText = `Bienvenue ${data.name} ! Votre entrée a été enregistrée avec succès.`;
+                    } else if (data.status === "already") {
+                        messageDiv.className = 'status error';
+                        messageDiv.innerText = `Attention ${data.name}, votre badge a déjà été enregistré.`;
+                    } else {
+                        messageDiv.className = 'status error';
+                        messageDiv.innerText = "Erreur : " + (data.error || "Membre inconnu ou introuvable.");
+                    }
+                })
+                .catch(error => {
+                    messageDiv.className = 'status error';
+                    messageDiv.innerText = "Erreur de connexion au serveur de pointage.";
+                    console.error('Erreur:', error);
+                });
+        }
+    </script>
+
+</body>
+</html>
