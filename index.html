@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contrôle de Sortie - ASTER</title>
+    <title>Contrôle d'Entrée - ASTER</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         body {
@@ -33,9 +33,9 @@
             color: white;
             display: none;
         }
-        .bg-sortie { background-color: #17a2b8; }   /* Bleu : Sortie validée */
-        .bg-already { background-color: #ffc107; color: #333 !important; } /* Orange : Sortie impossible */
-        .bg-unknown { background-color: #dc3545; }  /* Rouge : Inconnu */
+        .bg-success { background-color: #28a745; } /* Vert : Entrée validée */
+        .bg-already { background-color: #ffc107; color: #333 !important; } /* Orange : Déjà présent */
+        .bg-unknown { background-color: #dc3545; } /* Rouge : Inconnu */
         
         .status-title { font-size: 18px; font-weight: bold; }
         .member-name { font-size: 16px; margin-top: 6px; }
@@ -56,7 +56,7 @@
 <body>
 
     <img src="logo.png" alt="Logo ASTER" class="logo">
-    <h1>Contrôle des Sorties</h1>
+    <h1>Contrôle des Entrées</h1>
     <div id="reader"></div>
     
     <div id="result-container">
@@ -91,17 +91,18 @@
             codeEl.innerText = "Code : " + code;
             container.className = "";
 
-            fetch(`${WEB_APP_URL}?code=${encodeURIComponent(code)}&action=sortie`)
+            // Notez bien &action=entree ici
+            fetch(`${WEB_APP_URL}?code=${encodeURIComponent(code)}&action=entree`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === "ok") {
-                        container.className = "bg-sortie";
-                        statusEl.innerText = "✔ SORTIE VALIDÉE";
+                        container.className = "bg-success";
+                        statusEl.innerText = "✔ ACCÈS AUTORISÉ";
                         nameEl.innerText = data.name;
-                    } else if (data.status === "sortie_impossible") {
+                    } else if (data.status === "already") {
                         container.className = "bg-already";
-                        statusEl.innerText = "⚠ SORTIE IMPOSSIBLE";
-                        nameEl.innerText = `${data.name} n'est pas marqué comme présent.`;
+                        statusEl.innerText = "⚠ DÉJÀ POINTÉ";
+                        nameEl.innerText = `${data.name} est déjà entré.`;
                     } else {
                         container.className = "bg-unknown";
                         statusEl.innerText = "✖ INCONNU";
